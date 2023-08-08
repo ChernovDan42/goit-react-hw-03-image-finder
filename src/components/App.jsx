@@ -15,7 +15,9 @@ export class App extends Component{
     page: 1,
     images: [],
     loader: false,
-    showModal:false,
+    showModal: false,
+    selectedPhoto: null,
+    showBtn: false,
 
   }
 
@@ -24,36 +26,91 @@ export class App extends Component{
     const { searchQuery, page } = this.state
 
     if (prevState.searchQuery !== searchQuery) {
+      this.scrollToTop()
       this.setState({loader:true})
-      fetchImages(searchQuery, page).then(obj => this.setState({ images: [...obj.data.hits]})).finally(()=>this.setState({loader:false}))
+      fetchImages(searchQuery.trim(), page).then(({data:{totalHits,hits}}) => {
+        
+        console.log(totalHits);
+        this.setState({ error: false })
+
+        if (totalHits === 0) {
+          this.setState({ error: true })
+          return alert('We have no match')
+        }
+   
+        if (totalHits < 12) {
+          this.setState({ error: true })
+        }
+
+
+        this.setState({ images: [...hits] })
+        })
+        .catch(error => {
+          console.log(error.message)
+          // this.setState({error:true})
+        })
+        .finally(() => this.setState((state) => (
+          { loader: false, showBtn: state.error ? false : true }
+        )))
     }
     
 
     if (prevState.page !== this.state.page) {
       this.setState({loader:true})
-       fetchImages(searchQuery, page).then(obj => this.setState(prevState=>({ images: [...prevState.images,...obj.data.hits]}))).finally(()=>this.setState({loader:false}))
+      fetchImages(searchQuery, page).
+        then(({data:{hits}}) => {
+         
+          if (hits.length < 12) {
+            this.setState({showBtn:false})
+          }
+
+          this.setState(prevState => (
+            { images: [...prevState.images, ...hits] }
+          ))
+        })
+        .finally(() => this.setState({ loader: false }))
     
     }
         
   }
 
   onFormSubmit = (value) => {
-     this.setState({ searchQuery: value})
+     this.setState({ searchQuery: value,page:1})
    }
   
   onLoadMore = () => {
     this.setState(prevState => ({ page: prevState.page + 1 }))
   }
 
+  toggleModal = () => {
+    this.setState(({ showModal })=>({
+      showModal: !showModal
+    }))
+  }
+
+  onPhotoClick = (url) => {
+    this.setState({ selectedPhoto: url,showModal:true })
+    
+  }
+
+  scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+  
   render(){
+
+    const {images,showModal,selectedPhoto,loader,showBtn}=this.state
+
   return (
     <div className={css.App}>
       <Searchbar onSubmit={this.onFormSubmit} />
-      <ImageGallery images={this.state.images} />
-      {this.state.showModal && <Modal><img src="" alt="" /></Modal>}
-
-      {this.state.loader && <Loader/>}
-      {this.state.images.length >0 && <Button loadMore={this.onLoadMore } />}
+      <ImageGallery images={images} onPhotoClick={this.onPhotoClick } />
+      {showModal && <Modal onClose={this.toggleModal}><img src={selectedPhoto} alt="popa" /></Modal>}
+      {loader && <Loader/>}
+      {showBtn && <Button loadMore={this.onLoadMore } />}
     </div>
   );
 }
