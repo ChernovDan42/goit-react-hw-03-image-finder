@@ -1,6 +1,7 @@
 import { Component } from 'react';
 import css from './Modal.module.css';
 import { createPortal } from 'react-dom';
+import PropTypes from 'prop-types';
 
 const modalRoot=document.querySelector('#modal-root')
 
@@ -17,14 +18,13 @@ export class Modal extends Component {
 
   handleKeydown = (e) => {
     if (e.code === 'Escape') {
-      console.log('lol');
+
       this.props.onClose()
     }
   }
 
   handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
-      console.log('click');
       this.props.onClose()
     }
   }
@@ -42,4 +42,8 @@ export class Modal extends Component {
 }
 
  
+}
+
+Modal.propTypes = {
+  onClose: PropTypes.func,
 }

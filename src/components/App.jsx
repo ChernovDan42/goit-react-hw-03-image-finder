@@ -7,6 +7,8 @@ import {ImageGallery} from './ImageGallery/ImageGallery'
 import { Button } from './Button/Button'
 import { Loader } from './Loader/Loader'
 import { Modal } from './Modal/Modal'
+import Notiflix from 'notiflix';
+
 
 export class App extends Component{
 
@@ -29,36 +31,38 @@ export class App extends Component{
       this.scrollToTop()
       this.setState({loader:true})
       fetchImages(searchQuery.trim(), page).then(({data:{totalHits,hits}}) => {
-        
-        console.log(totalHits);
-        this.setState({ error: false })
+       
+        const maxPage = Math.ceil(totalHits / hits.length)
 
         if (totalHits === 0) {
-          this.setState({ error: true })
-          return alert('We have no match')
+          return Notiflix.Notify.warning('We have no match');
         }
    
-        if (totalHits < 12) {
-          this.setState({ error: true })
+        if (maxPage === page) {
+         this.setState({showBtn:false})
+        } else {
+          this.setState({showBtn:true})
         }
-
 
         this.setState({ images: [...hits] })
         })
         .catch(error => {
           console.log(error.message)
-          // this.setState({error:true})
+          
+         
         })
-        .finally(() => this.setState((state) => (
-          { loader: false, showBtn: state.error ? false : true }
-        )))
+        .finally(() => this.setState(
+          { loader: false }
+        ))
+
     }
     
 
     if (prevState.page !== this.state.page) {
       this.setState({loader:true})
-      fetchImages(searchQuery, page).
-        then(({data:{hits}}) => {
+      fetchImages(searchQuery, page)
+        .then(({ data: { hits, totalHits } }) => {
+          
          
           if (hits.length < 12) {
             this.setState({showBtn:false})
@@ -68,6 +72,10 @@ export class App extends Component{
             { images: [...prevState.images, ...hits] }
           ))
         })
+        .catch(error => {
+          console.log(error.message)
+         
+        })
         .finally(() => this.setState({ loader: false }))
     
     }
@@ -75,6 +83,9 @@ export class App extends Component{
   }
 
   onFormSubmit = (value) => {
+    if (this.state.searchQuery === value) {
+      return
+    }
      this.setState({ searchQuery: value,page:1})
    }
   
