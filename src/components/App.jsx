@@ -43,6 +43,7 @@ export class App extends Component {
         })
         .catch(error => {
           console.log(error.message);
+          Notiflix.Notify.failure(`${error.message}`);
         })
         .finally(() => this.setState({ loader: false }));
     }
@@ -61,6 +62,7 @@ export class App extends Component {
         })
         .catch(error => {
           console.log(error.message);
+          Notiflix.Notify.failure(`${error.message}`);
         })
         .finally(() => this.setState({ loader: false }));
     }
