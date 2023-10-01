@@ -16,52 +16,26 @@ export class App extends Component {
     loader: false,
     showModal: false,
     selectedPhoto: null,
-    showBtn: false,
+    totalImages: 0,
   };
 
-  componentDidUpdate(prevProps, prevState) {
+  componentDidUpdate(_, prevState) {
     const { searchQuery, page } = this.state;
 
-    if (prevState.searchQuery !== searchQuery) {
-      this.scrollToTop();
+    if (prevState.searchQuery !== searchQuery || prevState.page !== page) {
       this.setState({ loader: true });
-      fetchImages(searchQuery.trim(), page)
+      fetchImages(searchQuery, page)
         .then(({ data: { totalHits, hits } }) => {
-          const maxPage = Math.ceil(totalHits / hits.length);
-
           if (totalHits === 0) {
             return Notiflix.Notify.warning('We have no match');
           }
 
-          if (maxPage === page) {
-            this.setState({ showBtn: false });
-          } else {
-            this.setState({ showBtn: true });
-          }
-
-          this.setState({ images: [...hits] });
-        })
-        .catch(error => {
-          console.log(error.message);
-          Notiflix.Notify.failure(`${error.message}`);
-        })
-        .finally(() => this.setState({ loader: false }));
-    }
-
-    if (prevState.page !== this.state.page) {
-      this.setState({ loader: true });
-      fetchImages(searchQuery, page)
-        .then(({ data: { hits } }) => {
-          if (hits.length < 12) {
-            this.setState({ showBtn: false });
-          }
-
           this.setState(prevState => ({
-            images: [...prevState.images, ...hits],
+            images: page === 1 ? hits : [...prevState.images, ...hits],
+            totalImages: totalHits,
           }));
         })
         .catch(error => {
-          console.log(error.message);
           Notiflix.Notify.failure(`${error.message}`);
         })
         .finally(() => this.setState({ loader: false }));
@@ -69,10 +43,14 @@ export class App extends Component {
   }
 
   onFormSubmit = value => {
-    if (this.state.searchQuery === value) {
+    const query = value.toLowerCase().trim();
+    if (this.state.searchQuery === query || !query) {
       return;
     }
-    this.setState({ searchQuery: value, page: 1 });
+    this.setState(
+      { searchQuery: value, totalImages: 0, page: 1 },
+      this.scrollToTop()
+    );
   };
 
   onLoadMore = () => {
@@ -89,15 +67,16 @@ export class App extends Component {
     this.setState({ selectedPhoto: url, showModal: true });
   };
 
-  scrollToTop() {
+  scrollToTop = () => {
     window.scrollTo({
       top: 0,
       behavior: 'smooth',
     });
-  }
+  };
 
   render() {
-    const { images, showModal, selectedPhoto, loader, showBtn } = this.state;
+    const { images, showModal, selectedPhoto, loader, totalImages } =
+      this.state;
 
     return (
       <div className={css.App}>
@@ -109,7 +88,9 @@ export class App extends Component {
           </Modal>
         )}
         {loader && <Loader />}
-        {showBtn && <Button loadMore={this.onLoadMore} />}
+        {totalImages !== images.length && !loader && (
+          <Button loadMore={this.onLoadMore} />
+        )}
       </div>
     );
   }
